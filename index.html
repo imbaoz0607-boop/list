@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>List</title>
+  <meta name="theme-color" content="#2563eb" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="小尾巴" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="apple-touch-icon" href="icon.png" />
+  <style>
+    :root{
+      --bg:#f4f7fb;
+      --card:#ffffff;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+      --accent:#2563eb;
+      --accent-soft:#dbeafe;
+      --done:#16a34a;
+      --done-soft:#dcfce7;
+      --shadow:0 12px 30px rgba(15,23,42,.08);
+      --radius:20px;
+      --list-padding:16px;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; padding:0; }
+    body{
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+      background:linear-gradient(180deg,#f8fbff 0%, var(--bg) 100%);
+      color:var(--text);
+    }
+    .wrap{
+      width:min(920px, 100%);
+      margin:0 auto;
+      padding:18px 14px 40px;
+    }
+    .hero{
+      background:var(--card);
+      border:1px solid rgba(37,99,235,.10);
+      border-radius:26px;
+      box-shadow:var(--shadow);
+      padding:16px;
+      margin-bottom:16px;
+    }
+    h1{ margin:0; font-size:28px; line-height:1.2; letter-spacing:.2px; }
+    .stats{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:16px; }
+    .stat{ background:#fff; border:1px solid var(--line); border-radius:18px; padding:14px 10px; text-align:center; }
+    .stat .num{ font-weight:800; font-size:24px; line-height:1.1; margin-bottom:4px; }
+    .stat .label{ color:var(--muted); font-size:12px; }
+    .toolbar{ display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; align-items:center; }
+    .switcher{ display:flex; gap:8px; flex-wrap:wrap; }
+    .switch-btn{ background:#fff; }
+    .switch-btn.active{ background:var(--accent); color:#fff; border-color:var(--accent); }
+    .tiny-btn{ appearance:none; border:none; border-radius:999px; padding:8px 10px; font-size:12px; cursor:pointer; background:#fff; color:var(--text); border:1px solid var(--line); }
+    .item{ display:flex; align-items:flex-start; gap:10px; min-height:40px; padding:7px 0; }
+    .item.dragging{ opacity:.45; }
+    .item-main{ display:flex; align-items:flex-start; gap:10px; flex:1; min-width:0; }
+    .item-actions{ display:flex; align-items:center; gap:8px; margin-left:8px; }
+    .delete-btn{ appearance:none; border:none; background:transparent; color:#94a3b8; font-size:18px; line-height:1; cursor:pointer; padding:2px 6px; border-radius:8px; }
+    .delete-btn:hover{ background:#f8fafc; color:#b91c1c; }
+    .item .text{ flex:1; line-height:1.55; padding-top:1px; }
+    .editor-row{ display:flex; gap:8px; padding:0 16px 16px 52px; }
+    .editor-input{ flex:1; border:1px solid var(--line); border-radius:12px; padding:10px 12px; font-size:14px; }
+    button{ appearance:none; border:none; border-radius:999px; padding:11px 14px; font-size:14px; cursor:pointer; background:#fff; color:var(--text); border:1px solid var(--line); box-shadow:0 3px 10px rgba(15,23,42,.04); }
+    button.primary{ background:var(--accent); color:#fff; border-color:var(--accent); }
+    button:active{ transform:translateY(1px); }
+    .group{ background:var(--card); border:1px solid var(--line); border-radius:24px; box-shadow:var(--shadow); overflow:hidden; margin-bottom:14px; }
+    .group summary{ list-style:none; display:flex; align-items:center; gap:12px; cursor:default; padding:16px; user-select:text; }
+    .group summary::-webkit-details-marker{ display:none; }
+    .summary-main{ display:flex; align-items:center; gap:12px; flex:1; min-width:0; }
+    .title-area{ min-width:0; flex:1; }
+    .title-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .group-title{ font-size:17px; font-weight:800; }
+    .group-meta{ margin-top:4px; color:var(--muted); font-size:12px; }
+    .badge{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:700; background:var(--accent-soft); color:var(--accent); border:1px solid rgba(37,99,235,.12); }
+    .badge.done{ background:var(--done-soft); color:var(--done); border-color:#bbf7d0; }
+    .caret{ width:12px; height:12px; border-right:2px solid #94a3b8; border-bottom:2px solid #94a3b8; transform:rotate(45deg); transition:.18s ease; margin-right:4px; flex:0 0 auto; }
+    details[open] .caret{ transform:rotate(225deg); margin-top:6px; }
+    .items{ border-top:1px solid #f1f5f9; padding:4px 16px 16px 52px; display:grid; gap:6px; }
+    .card-grid{display:flex;gap:12px;padding:14px var(--list-padding) 18px var(--list-padding);border-top:1px solid #f1f5f9;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scroll-padding-left:var(--list-padding);scroll-padding-right:var(--list-padding)}
+.card-grid::before,.card-grid::after{content:"";flex:0 0 0}
+
+/* 只調整「安全帽」與「其他」收合層左邊距離，使其與其他收合層對齊 */
+.card-grid[data-group="安全帽"],
+.card-grid[data-group="其他"]{
+  /* 微調左邊距離，讓卡片與其他區塊視覺對齊 */
+  padding-left:6px;
+  scroll-padding-left:6px;
+}
+    .brand-stack{display:flex;flex-direction:column;gap:12px;padding:14px 16px 18px 16px;border-top:1px solid #f1f5f9;}
+    .card-wrap-grid{display:flex;flex-wrap:wrap;gap:12px;padding:14px 16px 18px 16px;border-top:1px solid #f1f5f9;overflow:visible}
+    .card-grid::-webkit-scrollbar,.cover-brand-grid::-webkit-scrollbar{height:8px}
+    .card-grid::-webkit-scrollbar-thumb,.cover-brand-grid::-webkit-scrollbar-thumb{background:#d7deea;border-radius:999px}
+    .card-grid::-webkit-scrollbar-track,.cover-brand-grid::-webkit-scrollbar-track{background:transparent}
+    .card-item{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 10px;text-align:center;box-shadow:0 4px 10px rgba(0,0,0,.04);position:relative;cursor:pointer;flex:0 0 160px;min-width:160px;scroll-snap-align:start}
+    .card-item.checked{background:var(--done-soft);border-color:#bbf7d0}
+    .card-item input{position:absolute;top:8px;right:8px}
+    .card-item .text{display:block;font-size:13px;margin-top:6px;line-height:1.3}
+    .card-item .price{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+    .card-item img{width:70px;height:70px;object-fit:contain;display:block;margin:8px auto 4px;cursor:zoom-in}
+    .cover-brand{background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,.04);flex:0 0 100%;min-width:100%;padding:0}
+    .cover-brand summary{list-style:none;display:flex;align-items:center;justify-content:space-between;padding:16px 18px;cursor:default;font-weight:800;color:var(--text);user-select:text}
+    .cover-brand summary::-webkit-details-marker{display:none}
+    .cover-brand-caret{width:10px;height:10px;border-right:2px solid #94a3b8;border-bottom:2px solid #94a3b8;transform:rotate(45deg);transition:.18s ease;flex:0 0 auto}
+    .cover-brand[open] .cover-brand-caret{transform:rotate(225deg);margin-top:6px}
+    .cover-brand-grid{display:flex;gap:12px;padding:14px var(--list-padding) 18px var(--list-padding);border-top:1px solid #f1f5f9;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scroll-padding-left:var(--list-padding);scroll-padding-right:var(--list-padding)}
+    .image-modal{position:fixed;inset:0;background:rgba(15,23,42,.72);display:flex;align-items:center;justify-content:center;padding:20px;z-index:100;opacity:0;pointer-events:none;transition:.2s ease}
+    .image-modal.show{opacity:1;pointer-events:auto}
+    .modal-card{position:relative;max-width:min(92vw,720px);max-height:88vh;background:#fff;border-radius:24px;padding:16px 52px;box-shadow:0 20px 60px rgba(0,0,0,.28)}
+    .modal-card img{display:block;max-width:100%;max-height:72vh;object-fit:contain;border-radius:16px}
+    .modal-close{position:absolute;top:10px;right:10px;width:40px;height:40px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:22px;line-height:1;cursor:pointer;box-shadow:none}
+    .modal-title{margin-top:10px;text-align:center;font-size:14px;color:var(--muted)}
+    .modal-nav{position:absolute;top:50%;transform:translateY(-50%);width:38px;height:38px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:24px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:none;z-index:2}
+    .modal-prev{left:10px}
+    .modal-next{right:10px}
+    .modal-nav[disabled]{opacity:.35;cursor:not-allowed}
+    .modal-counter{margin-top:6px;text-align:center;font-size:12px;color:var(--muted)}
+    .item.checked .text{ color:#9ca3af; text-decoration:line-through; }
+    input[type="checkbox"]{ width:22px; height:22px; accent-color:var(--accent); cursor:pointer; flex:0 0 auto; margin:0; }
+    .toast{ position:fixed; left:50%; bottom:22px; transform:translateX(-50%) translateY(12px); background:rgba(17,24,39,.92); color:#fff; padding:10px 14px; border-radius:999px; font-size:13px; opacity:0; pointer-events:none; transition:.2s ease; z-index:50; white-space:nowrap; }
+    .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+    @media (max-width:640px){
+      .wrap{ padding:14px 12px 34px; }
+      h1{ font-size:24px; }
+      .group summary{ padding:14px; }
+      .items{ padding:4px 14px 14px 46px; }
+      .group-title{ font-size:16px; }
+      .stats .stat .num{ font-size:22px; }
+      .card-item{flex:0 0 140px;min-width:140px}
+      .modal-card{padding:16px 44px}
+      .modal-nav{width:34px;height:34px;font-size:22px}
+    }
+    </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1>📜 List</h1>
+      <div class="stats">
+        <div class="stat">
+          <div class="num" id="doneCount">0</div>
+          <div class="label">已完成</div>
+        </div>
+        <div class="stat">
+          <div class="num" id="totalCount">0</div>
+          <div class="label">總項目</div>
+        </div>
+        <div class="stat">
+          <div class="num" id="percentCount">0%</div>
+          <div class="label">完成度</div>
+        </div>
+      </div>
+      <div class="toolbar">
+        <div class="switcher">
+          <button class="switch-btn" id="travelBtn">打包清單</button>
+          <button class="switch-btn" id="drugstoreBtn">購物清單</button>
+        </div>
+        <button class="primary" id="toggleExpandBtn">展開全部 ▼</button>
+      </div>
+    </section>
+    <div id="groupContainer"></div>
+  </div>
+
+  <div class="toast" id="toast">已儲存</div>
+
+  <div class="image-modal" id="imageModal" aria-hidden="true">
+    <div class="modal-card">
+      <button class="modal-close" id="modalClose" type="button" aria-label="關閉">×</button>
+      <button class="modal-nav modal-prev" id="modalPrev" type="button" aria-label="上一張">‹</button>
+      <button class="modal-nav modal-next" id="modalNext" type="button" aria-label="下一張">›</button>
+      <img id="modalImage" src="" alt="商品圖片放大預覽" />
+      <div class="modal-title" id="modalTitle"></div>
+      <div class="modal-counter" id="modalCounter"></div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "travel-checklist-pro-v2";
+
+    const DEFAULT_LISTS = {
+      travel: {
+        title: "📜 List",
+        groups: [
+          { title: "重要物品", items: ["護照","現金"] },
+          { title: "清潔", items: ["卸妝油","洗面乳","洗髮精","護髮膜"] },
+          { title: "保養品、底妝", items: ["前導精華","痘膚潤","痘痘藥","化妝水","眼霜","保濕精華液","面霜","擦拭型化妝水","化妝棉","防曬","CC霜","妝前霜","蜜粉","多效精華液","身體乳液","熱活精華","護髮油"] },
+          { title: "生活物品", items: ["牙刷、牙膏","快乾毛巾","牙線棒","棉花棒","衛生紙","濕紙巾","髮圈","鯊魚夾","瀏海貼","口罩","袖珍面紙","紙提袋","購物袋","垃圾袋","夾鏈袋","凡士林","眼藥水","眼鏡","藥品","酒精"] },
+          {
+            title: "雜",
+            items: [
+              {
+                name:"DANTON",
+                covermark:true,
+                items:[
+                  { name:"DANTON ポリオックスフォード シャツワンピース 17,050円(税込)", img:"images/80.jpg", url:"https://bshop-inc.com/shop/ec/item/view/shop_product_id/41641" },
+                  { name:"DANTON ドリル カラーレス ジャケット MEN 25,300円(税込)", img:"images/81.jpg", url:"https://bshop-inc.com/shop/ec/item/view/shop_product_id/41633" }
+                ]
+              },
+              {
+                name:"RALPH LAUREN",
+                covermark:true,
+                items:[
+                  { name:"POLO RALPH LAUREN ポロシャツ 22,000円(税込)", img:"images/83.jpg", url:"https://www.ralphlauren.co.jp/%E3%82%A2%E3%82%A4%E3%82%B3%E3%83%8B%E3%83%83%E3%82%AF-%E3%83%A1%E3%83%83%E3%82%B7%E3%83%A5-%E3%83%9D%E3%83%AD%E3%82%B7%E3%83%A3%E3%83%84-401481.html" }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      drugstore: {
+        title: "📜 List",
+        groups: [
+          {
+            title: "藥妝",
+            items: [
+              {
+                name:"藥品",
+                covermark:true,
+                items:[
+                  { name:"EVE QUICK DX 頭痛薬", img:"images/1.jpg" },
+                  { name:"大地の漢方便秘薬", img:"images/2.jpg" },
+                  { name:"ジンマート じんましん治療薬", img:"images/3.jpg" },
+                  { name:"液体ムヒS2a かゆみ止め", img:"images/4.jpg" },
+                  { name:"Vロートプレミアム 目薬", img:"images/5.jpg" },
+                  { name:"ロキソニンEXゲル 鎮痛消炎", img:"images/6.jpg" },
+                  { name:"ロキソニンEXテープ", img:"images/7.jpg" }
+                ]
+              },
+              {
+                name:"美妝",
+                covermark:true,
+                items:[
+                  { name:"ビオレ おうちdeエステ ディープクレイ洗顔", img:"images/11.jpg" },
+                  { name:"QUALITY 1st DERMA LASER EYE SHEET SUPER BLACK", img:"images/12.jpg" },
+                  { name:"CLEAR TURN HYALURO TUNE 2000 ヒアルロン酸注入ニードル", img:"images/13.jpg" },
+                  { name:"CLEAR TURN HYALURO TUNE 1500 ヒアルロン酸注入ニードル", img:"images/14.jpg" },
+                  { name:"CURESYS DARK SPOT AC PATCH", img:"images/15.jpg" }
+                ]
+              },
+              {
+                name:"身體用",
+                covermark:true,
+                items:[
+                  { name:"Nature Conc かかとクリーム", img:"images/101.jpg" },
+                  { name:"mérit Conditioning Water", img:"images/102.jpg" },
+                  { name:"mérit DRY SHAMPOO SHEETS", img:"images/103.jpg" }
+                ]
+              },
+              {
+                name:"食用",
+                covermark:true,
+                items:[
+                  { name:"SUNTORY TADAS 食物繊維", img:"images/115.jpg" },
+                  { name:"3倍 ぱっくん分解酵母", img:"images/116.jpg" },
+                  { name:"おなかの脂肪 ぱっくん（黒しょうが）", img:"images/117.jpg" }
+                ]
+              }
+            ]
+          },
+          { title: "保養/化妝",
+            items: [
+              {
+                name:"COVERMARK",
+                covermark:true,
+                items:[
+                  { name:"トリートメント クレンジング オイル 200ml+30ml 3,300円(税込)", img:"images/20.jpg" },
+                  { name:"モイスチュア チャージ セラム 9,900円(税込)", img:"images/21.jpg" },
+                  { name:"モイスチュア チャージ セラム リフィル 9,350円(税込)", img:"images/22.jpg" },
+                  { name:"モイスチュア リッチ リンクル クリーム 6,380円(税込)", img:"images/23.jpg" }
+                ]
+              },
+              {
+                name:"KANEBO",
+                covermark:true,
+                items:[
+                  { name:"ラディアント スキン リファイナー RADIANT SKIN REFINER 200mL 4,500円(税抜)", img:"images/24.jpg" },
+                  { name:"ザ ファースト セラム a THE FIRST SERUM 6,000円(税抜)", img:"images/25.jpg" }
+                ]
+              }
+            ]
+          },
+          {
+            title: "MUJI",
+            items: [
+              { name:"むくみを防ぐ着圧ハイソックス 1,490円", img:"images/31.jpg" },
+              { name:"発酵導入美容液 50mL 1,990円", img:"images/32.jpg" },
+              { name:"ビタミンC誘導体配合美容液 30mL 2,490円", img:"images/33.jpg" },
+              { name:"ナイアシンアミド配合美容液 30mL 2,490円", img:"images/34.jpg" },
+              { name:"薬用リンクルブライト美容液 50mL 2,990円", img:"images/35.jpg" },
+              { name:"セラミド配合美容液 30mL 2,490円", img:"images/36.jpg" },
+              { name:"エイジングケア乳液 200mL 2,290円", img:"images/37.jpg" }
+            ]
+          },
+          {
+            title: "UNIQLO",
+            items: [
+              { name:"ベリーショートソックス 390円", img:"images/55.jpg" },
+{ name:"エアリズム前あきクルーネックT 8分袖 1,990円", img:"images/56.jpg" },
+{ name:"エアリズム前あきクルーネックT 8分袖 1,990円", img:"images/57.jpg" },
+{ name:"クルーネックTシャツ 1,500円", img:"images/58.jpg" },
+{ name:"キャップスリーブT 1,500円", img:"images/59.jpg" },
+{ name:"UVカットクルーネックカーディガン 2,990円", img:"images/60.jpg" }
+            ]
+          },
+          {
+            title: "其他",
+            items: [
+          { name:"DANTON ポリオックスフォード シャツワンピース 17,050円(税込)", img:"images/80.jpg", url:"https://bshop-inc.com/shop/ec/item/view/shop_product_id/41641" },
+          { name:"DANTON ドリル カラーレス ジャケット MEN 25,300円(税込)", img:"images/81.jpg", url:"https://bshop-inc.com/shop/ec/item/view/shop_product_id/41633" },
+          { name:"POLO RALPH LAUREN ポロシャツ 22,000円(税込)", img:"images/83.jpg", url:"https://www.ralphlauren.co.jp/%E3%82%A2%E3%82%A4%E3%82%B3%E3%83%8B%E3%83%83%E3%82%AF-%E3%83%A1%E3%83%83%E3%82%B7%E3%83%A5-%E3%83%9D%E3%83%AD%E3%82%B7%E3%83%A3%E3%83%84-401481.html" },
+       ]
+          },
+          {
+            title: "saint james",
+            items: [
+              {
+                name:"UNISEX OUESSANTウェッソン(縮水2cm)<br>────────<br>SOLID［無地］<br>BORDER［ボーダー］<br>LOOSE 長袖ドロップショルダー",
+                covermark:true,
+                items:[
+                  { name:"ウェッソン・無地 NOIR［黒］14,300円(税込)", img:"images/65.jpg" },
+                  { name:"ウェッソン・無地 NEIGE［白］14,300円(税込)", img:"images/66.jpg" },
+                  { name:"ウェッソン・ボーダー NEIGE/GRISCLAIR［白/霜降りペールグレー］14,300円(税込)", img:"images/67.jpg" },
+                  { name:"ウェッソン・ボーダー GRIS/NEIGE［杢グレー/白］14,300円(税込)", img:"images/68.jpg" },
+                  { name:"ウェッソン・ボーダー NAVY/PIN［ネイビー/ダークグリーン］14,300円(税込)", img:"images/69.jpg" },
+                  { name:"尺寸表", img:"images/70.jpg" },
+                  { name:"長袖ドロップショルダー NUAGE/NEIGE［ニュアジュブルー/白］15,400円(税込)", img:"images/71.jpg" },
+                  { name:"長袖ドロップショルダー GRISCLAIR/NEIGE［霜降りペールグレー/白］15,400円(税込)", img:"images/72.jpg" },
+                  { name:"尺寸表", img:"images/73.jpg" }
+                ]
+              },
+              {
+                name:"MORLAIX モーレ(縮水2cm)",
+                covermark:true,
+                items:[
+                  { name:"モーレ NOIR［黒］12,100円(税込)", img:"images/74.jpg" },
+                  { name:"モーレ NEIGE［白］12,100円(税込)", img:"images/75.jpg" },
+                  { name:"モーレ 尺寸表", img:"images/76.jpg" }
+                ]
+              }
+            ]
+          },
+          {
+            title: "安全帽",
+            items: [
+              { name:"SHOEI X‑Fifteen MATT BLACK", img:"images/90.jpg" },
+              { name:"SHOEI X‑Fifteen BLACK", img:"images/91.jpg" }
+            ]
+          }
+        ]
+      }
+    };
+
+    function clone(obj){ return JSON.parse(JSON.stringify(obj)); }
+
+    function loadState(){
+      try{
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        return {
+          activeList: saved?.activeList || "travel",
+          lists: clone(DEFAULT_LISTS),
+          checked: saved?.checked || {},
+          open: saved?.open || {},
+          brandOpen: saved?.brandOpen || {}
+        };
+      }catch(e){
+        return { activeList: "travel", lists: clone(DEFAULT_LISTS), checked: {}, open: {}, brandOpen: {} };
+      }
+    }
+
+    const state = loadState();
+    const container = document.getElementById("groupContainer");
+    const toast = document.getElementById("toast");
+    const imageModal = document.getElementById("imageModal");
+    const modalImage = document.getElementById("modalImage");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalClose = document.getElementById("modalClose");
+    const modalPrev = document.getElementById("modalPrev");
+    const modalNext = document.getElementById("modalNext");
+    const modalCounter = document.getElementById("modalCounter");
+    let modalGallery = [];
+    let modalIndex = 0;
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    function saveState(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        activeList: state.activeList,
+        checked: state.checked,
+        open: state.open,
+        brandOpen: state.brandOpen
+      }));
+    }
+
+    function keyForItem(listKey, groupTitle, item){ return `${listKey}||${groupTitle}||${item}`; }
+    function keyForOpen(listKey, groupTitle){ return `${listKey}||${groupTitle}`; }
+    function keyForBrandOpen(listKey, groupTitle, brandTitle){ return `${listKey}||${groupTitle}||${brandTitle}`; }
+    function currentList(){ return state.lists[state.activeList]; }
+
+    function splitPrice(name){
+      const match = String(name).match(/(.+?)([0-9,]+円\(税込\))/);
+      if(match){
+        return { text: match[1].trim(), price: match[2] };
+      }
+      return { text: String(name), price: "" };
+    }
+
+    function getFlattenedItems(group){
+      return group.items.flatMap(item => item?.covermark ? (item.items || []) : [item]);
+    }
+
+    function getCounts(group){
+      const flattenedItems = getFlattenedItems(group);
+      const total = flattenedItems.length;
+      const done = flattenedItems.filter(item => {
+        const itemName = item?.name ?? item;
+        return !!state.checked[keyForItem(state.activeList, group.title, itemName)];
+      }).length;
+      return { total, done, allDone: total > 0 && done === total };
+    }
+
+    function renderDrugstoreItem(groupTitle, item){
+      const itemName = item.name ?? item;
+      const itemImg = item.img ?? "";
+      const checked = !!state.checked[keyForItem(state.activeList, groupTitle, itemName)];
+      const parts = splitPrice(itemName);
+      return `
+        <label class="card-item ${checked ? "checked" : ""}" data-item="${itemName}">
+          <input type="checkbox" class="item-checkbox" data-group="${groupTitle}" data-item="${itemName}" ${checked ? "checked" : ""}>
+          ${itemImg ? `<img src="${itemImg}" alt="${itemName}" class="zoomable-image" data-full="${itemImg}" data-title="${itemName}" data-url="${item.url || ""}">` : ""}
+          <span class="text">${parts.text}</span>
+          ${parts.price ? `<span class="price">${parts.price}</span>` : ""}
+          <button class="delete-btn" type="button" data-group="${groupTitle}" data-item="${itemName}" style="position:absolute;bottom:6px;right:6px">×</button>
+        </label>
+      `;
+    }
+
+    function renderDrugstoreBrand(groupTitle, item){
+      const brandKey = keyForBrandOpen(state.activeList, groupTitle, item.name);
+      const isOpen = state.brandOpen[brandKey] ?? false;
+      return `
+        <details class="cover-brand" data-brand-group="${groupTitle}" data-brand-title="${item.name}" ${isOpen ? "open" : ""}>
+          <summary>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span>${item.name}</span>
+            </div>
+            <span class="cover-brand-caret"></span>
+          </summary>
+          <div class="cover-brand-grid">
+            ${(item.items || []).map(sub => renderDrugstoreItem(groupTitle, sub)).join("")}
+          </div>
+        </details>
+      `;
+    }
+
+    function renderTravelItems(group){
+      return `
+        <div class="items" data-group="${group.title}">
+          ${group.items.map(item => {
+            const itemName = item?.name ?? item;
+            const checked = !!state.checked[keyForItem(state.activeList, group.title, itemName)];
+            return `
+              <div class="item ${checked ? "checked" : ""}" draggable="true" data-item="${itemName}">
+                <div class="item-main">
+                  <input type="checkbox" class="item-checkbox" data-group="${group.title}" data-item="${itemName}" ${checked ? "checked" : ""}>
+                  <div class="text">${itemName}</div>
+                </div>
+                <div class="item-actions">
+                  <button class="delete-btn" type="button" data-group="${group.title}" data-item="${itemName}">×</button>
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      `;
+    }
+
+    function renderDrugstoreItems(group){
+      const isBrandStack = group.title === "saint james" || group.title === "保養/化妝" || group.title === "藥妝";
+      const groupClass = isBrandStack ? "brand-stack" : "card-grid";
+      return `
+        <div class="${groupClass}" data-group="${group.title}">
+          ${group.items.map(item => item?.covermark ? renderDrugstoreBrand(group.title, item) : renderDrugstoreItem(group.title, item)).join("")}
+        </div>
+      `;
+    }
+
+    function render(){
+      const list = currentList();
+      document.querySelector("h1").textContent = list.title;
+      document.getElementById("travelBtn").classList.toggle("active", state.activeList === "travel");
+      document.getElementById("drugstoreBtn").classList.toggle("active", state.activeList === "drugstore");
+
+      container.innerHTML = list.groups.map((group, idx) => {
+        const { total, done, allDone } = getCounts(group);
+        const open = state.open[keyForOpen(state.activeList, group.title)];
+        const shouldOpen = open === undefined ? !allDone : !!open;
+        const itemsHtml = state.activeList === "drugstore" ? renderDrugstoreItems(group) : renderTravelItems(group);
+
+        return `
+          <details class="group" id="group-${idx}" ${shouldOpen ? "open" : ""}>
+            <summary>
+              <div class="summary-main">
+                <input type="checkbox" class="group-checkbox" data-group="${group.title}" ${allDone ? "checked" : ""}>
+                <div class="title-area">
+                  <div class="title-row">
+                    <div class="group-title">${group.title}</div>
+                    <div class="badge ${allDone ? "done" : ""}">${allDone ? "已完成" : `剩 ${total - done} 項`}</div>
+                  </div>
+                  <div class="group-meta">${done} / ${total} 已完成</div>
+                </div>
+              </div>
+              <div class="caret"></div>
+            </summary>
+
+            ${itemsHtml}
+
+            ${state.activeList !== "drugstore" ? `
+              <div class="editor-row">
+                <input class="editor-input" type="text" placeholder="新增 ${group.title} 物品" data-add-input="${group.title}">
+                <button class="tiny-btn" type="button" data-add-btn="${group.title}">新增</button>
+              </div>
+            ` : ""}
+          </details>
+        `;
+      }).join("");
+
+      bindEvents();
+      enableDragSort();
+      refreshStats();
+    }
+
+    function bindEvents(){
+      document.querySelectorAll(".zoomable-image").forEach(img => {
+        let pressTimer = null;
+        let longPress = false;
+
+        const startPress = function(){
+          const url = this.dataset.url;
+          if(!url) return;
+          longPress = false;
+          pressTimer = setTimeout(()=>{
+            longPress = true;
+            window.open(url, "_blank");
+          }, 500);
+        };
+
+        const cancelPress = ()=> clearTimeout(pressTimer);
+
+        img.addEventListener("mousedown", startPress);
+        img.addEventListener("touchstart", startPress, {passive:true});
+        img.addEventListener("mouseup", cancelPress);
+        img.addEventListener("mouseleave", cancelPress);
+        img.addEventListener("touchend", cancelPress);
+        img.addEventListener("touchcancel", cancelPress);
+
+        img.addEventListener("click", function(e){
+          if(longPress) return;
+          e.preventDefault();
+          e.stopPropagation();
+
+          const scope = this.closest('.cover-brand-grid, .card-grid, .card-wrap-grid');
+          const nodes = [...(scope?.querySelectorAll('.zoomable-image') || [])];
+          const gallery = nodes.map(node => ({
+            src: node.dataset.full || node.src,
+            title: node.dataset.title || node.alt || ""
+          }));
+          const index = Math.max(0, nodes.indexOf(this));
+          openImageModal(gallery, index);
+        });
+      });
+
+      document.querySelectorAll(".item-checkbox").forEach(cb => {
+        cb.addEventListener("click", function(e){ e.stopPropagation(); });
+        cb.addEventListener("change", function(){
+          const groupTitle = this.dataset.group;
+          const item = this.dataset.item;
+          state.checked[keyForItem(state.activeList, groupTitle, item)] = this.checked;
+          const label = this.closest(".item, .card-item");
+          if(label) label.classList.toggle("checked", this.checked);
+          syncGroup(groupTitle, true);
+          saveState();
+          refreshStats();
+        });
+      });
+
+      document.querySelectorAll(".delete-btn").forEach(btn => {
+        let holdTimer = null;
+
+        const startHold = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const groupTitle = btn.dataset.group;
+          const item = btn.dataset.item;
+
+          holdTimer = setTimeout(() => {
+            const group = currentList().groups.find(g => g.title === groupTitle);
+            if(!group) return;
+
+            group.items = group.items
+              .map(entry => {
+                if(entry?.covermark){
+                  return {
+                    ...entry,
+                    items: (entry.items || []).filter(sub => (sub?.name ?? sub) !== item)
+                  };
+                }
+                return entry;
+              })
+              .filter(entry => {
+                if(entry?.covermark){
+                  return (entry.items || []).length > 0;
+                }
+                return (entry?.name ?? entry) !== item;
+              });
+
+            delete state.checked[keyForItem(state.activeList, groupTitle, item)];
+            saveState();
+            showToast("已刪除物品");
+            render();
+          }, 700);
+        };
+
+        const cancelHold = () => clearTimeout(holdTimer);
+
+        btn.addEventListener("mousedown", startHold);
+        btn.addEventListener("touchstart", startHold, { passive:false });
+        btn.addEventListener("mouseup", cancelHold);
+        btn.addEventListener("mouseleave", cancelHold);
+        btn.addEventListener("touchend", cancelHold);
+        btn.addEventListener("touchcancel", cancelHold);
+      });
+
+      document.querySelectorAll("[data-add-btn]").forEach(btn => {
+        btn.addEventListener("click", function(){ addItem(this.dataset.addBtn); });
+      });
+
+      document.querySelectorAll("[data-add-input]").forEach(input => {
+        input.addEventListener("keydown", function(e){
+          if(e.key === "Enter") addItem(this.dataset.addInput);
+        });
+      });
+
+      document.querySelectorAll(".group-checkbox").forEach(cb => {
+        cb.addEventListener("click", e => e.stopPropagation());
+        cb.addEventListener("change", function(){
+          const groupTitle = this.dataset.group;
+          const group = currentList().groups.find(g => g.title === groupTitle);
+          if(!group) return;
+
+          getFlattenedItems(group).forEach(item => {
+            const itemName = item?.name ?? item;
+            state.checked[keyForItem(state.activeList, groupTitle, itemName)] = this.checked;
+          });
+
+          state.open[keyForOpen(state.activeList, groupTitle)] = !this.checked;
+          saveState();
+          render();
+        });
+      });
+
+      document.querySelectorAll(".group").forEach(detail => {
+        detail.addEventListener("toggle", function(){
+          const groupCheckbox = this.querySelector(".group-checkbox");
+          if(!groupCheckbox) return;
+          state.open[keyForOpen(state.activeList, groupCheckbox.dataset.group)] = this.open;
+          saveState();
+        });
+      });
+
+      document.querySelectorAll('.group > summary').forEach(summary => {
+        summary.addEventListener('click', function(e){
+          if(e.target.closest('input, button, .title-area, .group-title, .group-meta, .badge')) return;
+          e.preventDefault();
+          const detail = this.parentElement;
+          detail.open = !detail.open;
+        });
+      });
+
+      document.querySelectorAll('.cover-brand > summary').forEach(summary => {
+        summary.addEventListener('click', function(e){
+          if(e.target.closest('input, button')) return;
+          e.preventDefault();
+          const detail = this.parentElement;
+          detail.open = !detail.open;
+        });
+      });
+
+      document.querySelectorAll('.cover-brand').forEach(detail => {
+        detail.addEventListener('toggle', function(){
+          const brandTitle = this.dataset.brandTitle;
+          const groupTitle = this.dataset.brandGroup;
+          if(!brandTitle || !groupTitle) return;
+          state.brandOpen[keyForBrandOpen(state.activeList, groupTitle, brandTitle)] = this.open;
+          saveState();
+        });
+      });
+
+      document.getElementById("toggleExpandBtn").onclick = function(){
+        const groups = currentList().groups;
+        const allOpen = groups.every(g => state.open[keyForOpen(state.activeList, g.title)] === true);
+
+        if(allOpen){
+          groups.forEach(g => state.open[keyForOpen(state.activeList, g.title)] = false);
+          this.textContent = "展開全部 ▼";
+        }else{
+          groups.forEach(g => state.open[keyForOpen(state.activeList, g.title)] = true);
+          this.textContent = "收合全部 ▲";
+        }
+
+        saveState();
+        render();
+      };
+
+      document.getElementById("travelBtn").onclick = function(){
+        state.activeList = "travel";
+        saveState();
+        render();
+      };
+
+      document.getElementById("drugstoreBtn").onclick = function(){
+        state.activeList = "drugstore";
+        saveState();
+        render();
+      };
+    }
+
+    function showToast(msg){
+      toast.textContent = msg;
+      toast.classList.add("show");
+      clearTimeout(showToast._timer);
+      showToast._timer = setTimeout(() => toast.classList.remove("show"), 1200);
+    }
+
+    function updateModalView(){
+      const current = modalGallery[modalIndex];
+      if(!current) return;
+      modalImage.src = current.src;
+      modalTitle.textContent = current.title;
+      modalCounter.textContent = modalGallery.length > 1 ? `${modalIndex + 1} / ${modalGallery.length}` : "";
+      modalPrev.disabled = modalGallery.length <= 1;
+      modalNext.disabled = modalGallery.length <= 1;
+    }
+
+    function openImageModal(gallery, index = 0){
+      modalGallery = Array.isArray(gallery) ? gallery : [];
+      modalIndex = index;
+      updateModalView();
+      imageModal.classList.add("show");
+      imageModal.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+    }
+
+    function showPrevImage(){
+      if(modalGallery.length <= 1) return;
+      modalIndex = (modalIndex - 1 + modalGallery.length) % modalGallery.length;
+      updateModalView();
+    }
+
+    function showNextImage(){
+      if(modalGallery.length <= 1) return;
+      modalIndex = (modalIndex + 1) % modalGallery.length;
+      updateModalView();
+    }
+
+    function closeImageModal(){
+      imageModal.classList.remove("show");
+      imageModal.setAttribute("aria-hidden", "true");
+      modalImage.src = "";
+      modalGallery = [];
+      modalIndex = 0;
+      modalCounter.textContent = "";
+      document.body.style.overflow = "";
+    }
+
+    modalClose.addEventListener("click", closeImageModal);
+    modalPrev.addEventListener("click", function(e){ e.stopPropagation(); showPrevImage(); });
+    modalNext.addEventListener("click", function(e){ e.stopPropagation(); showNextImage(); });
+    imageModal.addEventListener("click", function(e){
+      if(e.target === imageModal) closeImageModal();
+    });
+    document.addEventListener("keydown", function(e){
+      if(!imageModal.classList.contains("show")) return;
+      if(e.key === "Escape") closeImageModal();
+      if(e.key === "ArrowLeft") showPrevImage();
+      if(e.key === "ArrowRight") showNextImage();
+    });
+
+    imageModal.addEventListener('touchmove', e => {
+      if(imageModal.classList.contains('show')) e.preventDefault();
+    }, { passive:false });
+
+    imageModal.addEventListener('touchstart', function(e){
+      if(!imageModal.classList.contains('show')) return;
+      touchStartX = e.changedTouches[0].clientX;
+    }, { passive:true });
+
+    imageModal.addEventListener('touchend', function(e){
+      if(!imageModal.classList.contains('show')) return;
+      touchEndX = e.changedTouches[0].clientX;
+      const delta = touchEndX - touchStartX;
+      if(Math.abs(delta) < 60) return;
+      if(delta > 0) showPrevImage();
+      else showNextImage();
+    }, { passive:true });
+
+    function addItem(groupTitle){
+      const input = document.querySelector(`[data-add-input="${groupTitle}"]`);
+      const value = input?.value.trim();
+      if(!value) return;
+      const group = currentList().groups.find(g => g.title === groupTitle);
+      if(!group) return;
+      if(group.items.some(item => (item?.name ?? item) === value)){
+        showToast("這個品項已存在");
+        return;
+      }
+
+      group.items.push(value);
+      if(input) input.value = "";
+      saveState();
+      showToast("已新增物品");
+      render();
+    }
+
+    function syncGroup(groupTitle, autoCollapse){
+      const detail = [...document.querySelectorAll(".group")].find(el => el.querySelector(".group-checkbox")?.dataset.group === groupTitle);
+      if(!detail) return;
+      const group = currentList().groups.find(g => g.title === groupTitle);
+      if(!group) return;
+      const { total, done, allDone } = getCounts(group);
+      const groupBox = detail.querySelector(".group-checkbox");
+      const badge = detail.querySelector(".badge");
+      const meta = detail.querySelector(".group-meta");
+      groupBox.checked = allDone;
+      badge.textContent = allDone ? "已完成" : `剩 ${total - done} 項`;
+      badge.classList.toggle("done", allDone);
+      meta.textContent = `${done} / ${total} 已完成`;
+      if(autoCollapse){
+        detail.open = !allDone;
+        state.open[keyForOpen(state.activeList, groupTitle)] = !allDone;
+      }
+    }
+
+    function enableDragSort(){
+      const isDesktop = window.matchMedia('(pointer:fine)').matches;
+
+      document.querySelectorAll('.items').forEach(listEl => {
+        let draggingEl = null;
+        let holdTimer = null;
+        let dragEnabled = false;
+        const groupTitle = listEl.dataset.group;
+
+        listEl.querySelectorAll('.item').forEach(item => {
+          item.setAttribute('draggable', 'false');
+
+          const enableDesktopDrag = () => {
+            dragEnabled = true;
+            draggingEl = item;
+            item.setAttribute('draggable', 'true');
+            item.classList.add('dragging');
+          };
+
+          const disableDesktopDrag = () => {
+            clearTimeout(holdTimer);
+            if(draggingEl === item){
+              item.classList.remove('dragging');
+              draggingEl = null;
+            }
+            item.setAttribute('draggable', 'false');
+            dragEnabled = false;
+          };
+
+          if(isDesktop){
+            item.addEventListener('mousedown', e => {
+              if(e.target.closest('input, button')) return;
+              holdTimer = setTimeout(enableDesktopDrag, 220);
+            });
+
+            item.addEventListener('mouseup', () => {
+              clearTimeout(holdTimer);
+              if(!dragEnabled) return;
+              persistOrder(groupTitle, listEl);
+              disableDesktopDrag();
+            });
+
+            item.addEventListener('mouseleave', () => {
+              clearTimeout(holdTimer);
+            });
+
+            item.addEventListener('dragstart', () => {
+              if(!dragEnabled){
+                item.setAttribute('draggable', 'false');
+                return;
+              }
+              draggingEl = item;
+              item.classList.add('dragging');
+            });
+
+            item.addEventListener('dragend', () => {
+              persistOrder(groupTitle, listEl);
+              disableDesktopDrag();
+            });
+          }
+
+          item.addEventListener('touchstart', () => {
+            holdTimer = setTimeout(() => {
+              draggingEl = item;
+              item.classList.add('dragging');
+              if(navigator.vibrate) navigator.vibrate(10);
+            }, 220);
+          }, { passive:true });
+
+          item.addEventListener('touchend', () => {
+            clearTimeout(holdTimer);
+            if(draggingEl){
+              draggingEl.classList.remove('dragging');
+              draggingEl = null;
+              persistOrder(groupTitle, listEl);
+            }
+          });
+
+          item.addEventListener('touchcancel', () => {
+            clearTimeout(holdTimer);
+            draggingEl = null;
+          });
+        });
+
+        listEl.addEventListener('dragover', e => {
+          if(!draggingEl) return;
+          e.preventDefault();
+          const after = [...listEl.querySelectorAll('.item:not(.dragging)')]
+            .find(el => e.clientY <= el.getBoundingClientRect().top + el.offsetHeight / 2);
+
+          if(!after) listEl.appendChild(draggingEl);
+          else listEl.insertBefore(draggingEl, after);
+        });
+
+        listEl.addEventListener('touchmove', e => {
+          if(!draggingEl) return;
+          const touch = e.touches[0];
+          const after = [...listEl.querySelectorAll('.item:not(.dragging)')]
+            .find(el => touch.clientY <= el.getBoundingClientRect().top + el.offsetHeight / 2);
+
+          if(!after) listEl.appendChild(draggingEl);
+          else listEl.insertBefore(draggingEl, after);
+          e.preventDefault();
+        }, { passive:false });
+      });
+    }
+
+    function persistOrder(groupTitle, listEl){
+      const group = currentList().groups.find(g => g.title === groupTitle);
+      if(!group) return;
+      group.items = [...listEl.querySelectorAll('.item')].map(el => el.dataset.item);
+      saveState();
+      render();
+    }
+
+    function refreshStats(){
+      const list = currentList();
+      const total = list.groups.reduce((sum, group) => sum + getFlattenedItems(group).length, 0);
+      const done = list.groups.reduce((sum, group) => sum + getFlattenedItems(group).filter(item => {
+        const itemName = item?.name ?? item;
+        return !!state.checked[keyForItem(state.activeList, group.title, itemName)];
+      }).length, 0);
+      const percent = total ? Math.round((done / total) * 100) : 0;
+      document.getElementById("doneCount").textContent = String(done);
+      document.getElementById("totalCount").textContent = String(total);
+      document.getElementById("percentCount").textContent = `${percent}%`;
+    }
+
+    function runSelfTests(){
+      console.assert(Array.isArray(DEFAULT_LISTS.travel.groups), 'travel groups should be an array');
+      console.assert(Array.isArray(DEFAULT_LISTS.drugstore.groups), 'drugstore groups should be an array');
+      console.assert(DEFAULT_LISTS.drugstore.groups.some(g => g.title === 'saint james'), 'saint james group should exist');
+      console.assert(DEFAULT_LISTS.drugstore.groups.some(g => g.title === '安全帽'), '安全帽 group should exist');
+      console.assert(DEFAULT_LISTS.drugstore.groups.some(g => g.title === 'MUJI'), 'MUJI group should exist');
+
+      const skincare = DEFAULT_LISTS.drugstore.groups.find(g => g.title === '保養/化妝');
+      console.assert(skincare, '保養/化妝 group should exist');
+      console.assert(getFlattenedItems(skincare).length === 6, '保養/化妝 should flatten 6 items');
+
+      console.assert(splitPrice('モイスチュア チャージ セラム9,900円(税込)').price === '9,900円(税込)', 'price parser should extract price');
+      console.assert(splitPrice('EVE止痛藥').text === 'EVE止痛藥', 'price parser should keep plain name');
+    }
+
+    runSelfTests();
+    render();
+  </script>
+</body>
+</html>
