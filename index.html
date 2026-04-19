@@ -258,9 +258,9 @@
                 name:"KANEBO",
                 covermark:true,
                 items:[
-                  { name:"ラディアント スキン リファイナー RADIANT SKIN REFINER 200mL 4,500円(税抜)", img:"images/24.jpg" },
-                  { name:"ザ ファースト セラム a THE FIRST SERUM 6,000円(税抜)", img:"images/25.jpg" },
-                  { name:"KANEBO 使用示意", img:"images/26.jpg" }
+                  { name:"ラディアント スキン リファイナー RADIANT SKIN REFINER 200mL 4,500円(税抜)", img:"images/24.jpg", url:"https://global.kanebo.com/ja/categories/skincare/lotion/p/4973167090411" },
+                  { name:"ザ ファースト セラム a THE FIRST SERUM 6,000円(税抜)", img:"images/25.jpg", url:"https://global.kanebo.com/ja/categories/skincare/serum/p/4973167090435" },
+                  { name:"ジェネレイティング エッセンシャルズ GENERATING ESSENTIALS 本体 168mL 13,200円(税込)", img:"images/26.jpg", url:"https://global.kanebo.com/ja/categories/skincare/lotion/p/4973167019344" }
                 ]
               }
             ]
@@ -291,11 +291,11 @@
           {
             title: "其他",
             items: [
-          { name:"DANTON ポリオックスフォード シャツワンピース 17,050円(税込)", img:"images/80.jpg", url:"https://bshop-inc.com/shop/ec/item/view/shop_product_id/41641" },
-          { name:"DANTON ドリル カラーレス ジャケット MEN 25,300円(税込)", img:"images/81.jpg", url:"https://bshop-inc.com/shop/ec/item/view/shop_product_id/41633" },
-          { name:"POLO RALPH LAUREN ポロシャツ 22,000円(税込)", img:"images/88.jpg", url:"https://www.ralphlauren.co.jp/%E3%82%A2%E3%82%A4%E3%82%B3%E3%83%8B%E3%83%83%E3%82%AF-%E3%83%A1%E3%83%83%E3%82%B7%E3%83%A5-%E3%83%9D%E3%83%AD%E3%82%B7%E3%83%A3%E3%83%84-401481.html" },
-          { name:"POLO衫尺寸表", img:"images/89.jpg" },
-       ]
+              { name:"DANTON ポリオックスフォード シャツワンピース 17,050円(税込)", img:"images/80.jpg", url:"https://bshop-inc.com/shop/ec/item/view/shop_product_id/41641" },
+              { name:"DANTON ドリル カラーレス ジャケット MEN 25,300円(税込)", img:"images/81.jpg", url:"https://bshop-inc.com/shop/ec/item/view/shop_product_id/41633" },
+              { name:"POLO RALPH LAUREN ポロシャツ 22,000円(税込)", img:"images/88.jpg", url:"https://www.ralphlauren.co.jp/%E3%82%A2%E3%82%A4%E3%82%B3%E3%83%8B%E3%83%83%E3%82%AF-%E3%83%A1%E3%83%83%E3%82%B7%E3%83%A5-%E3%83%9D%E3%83%AD%E3%82%B7%E3%83%A3%E3%83%84-401481.html" },
+              { name:"POLO衫尺寸表", img:"images/89.jpg" }
+            ]
           },
           {
             title: "saint james",
@@ -329,9 +329,19 @@
           {
             title: "安全帽",
             items: [
-              { name:"SHOEI X‑Fifteen MATT BLACK", img:"images/90.jpg" },
-              { name:"SHOEI X‑Fifteen BLACK", img:"images/91.jpg" }
+              { name:"SHOEI X-Fifteen MATT BLACK", img:"images/90.jpg" },
+              { name:"SHOEI X-Fifteen BLACK", img:"images/91.jpg" }
             ]
+          },
+          {
+            title: "便利商店",
+            items: [
+              { name:"UHA グミ いちご", img:"images/125.jpg" }
+            ]
+          },
+          {
+            title: "所有雜七雜八",
+            items: []
           }
         ]
       }
@@ -501,7 +511,7 @@
 
             ${itemsHtml}
 
-            ${state.activeList !== "drugstore" ? `
+            ${state.activeList !== "drugstore" || group.title === "便利商店" || group.title === "所有雜七雜八" ? `
               <div class="editor-row">
                 <input class="editor-input" type="text" placeholder="新增 ${group.title} 物品" data-add-input="${group.title}">
                 <button class="tiny-btn" type="button" data-add-btn="${group.title}">新增</button>
