@@ -511,9 +511,12 @@
 
             ${itemsHtml}
 
-            ${state.activeList !== "drugstore" || group.title === "便利商店" || group.title === "所有雜七雜八" ? `
-              <div class="editor-row">
-                <input class="editor-input" type="text" placeholder="新增 ${group.title} 物品" data-add-input="${group.title}">
+            ${state.activeList !== "drugstore" || group.title === "藥妝" ? `
+              <div class="editor-row" style="flex-wrap:wrap;gap:6px">
+                <input class="editor-input" type="text" placeholder="名稱" data-add-name="${group.title}">
+                <input class="editor-input" type="text" placeholder="圖片 (images/xxx.jpg)" data-add-img="${group.title}">
+                <input class="editor-input" type="text" placeholder="價格 (可留空)" data-add-price="${group.title}">
+                <input class="editor-input" type="text" placeholder="商品連結 (可留空)" data-add-url="${group.title}">
                 <button class="tiny-btn" type="button" data-add-btn="${group.title}">新增</button>
               </div>
             ` : ""}
@@ -801,20 +804,44 @@
     }, { passive:true });
 
     function addItem(groupTitle){
-      const input = document.querySelector(`[data-add-input="${groupTitle}"]`);
-      const value = input?.value.trim();
-      if(!value) return;
+      const nameInput = document.querySelector(`[data-add-name="${groupTitle}"]`);
+      const imgInput = document.querySelector(`[data-add-img="${groupTitle}"]`);
+      const priceInput = document.querySelector(`[data-add-price="${groupTitle}"]`);
+      const urlInput = document.querySelector(`[data-add-url="${groupTitle}"]`);
+
+      const name = nameInput?.value.trim();
+      const img = imgInput?.value.trim();
+      const price = priceInput?.value.trim();
+      const url = urlInput?.value.trim();
+
+      if(!name) return;
+
       const group = currentList().groups.find(g => g.title === groupTitle);
       if(!group) return;
-      if(group.items.some(item => (item?.name ?? item) === value)){
+
+      const finalName = price ? `${name} ${price}` : name;
+
+      if(group.items.some(item => (item?.name ?? item) === finalName)){
         showToast("這個品項已存在");
         return;
       }
 
-      group.items.push(value);
-      if(input) input.value = "";
+      const newItem = {
+        name: finalName
+      };
+
+      if(img) newItem.img = img;
+      if(url) newItem.url = url;
+
+      group.items.push(newItem);
+
+      if(nameInput) nameInput.value = "";
+      if(imgInput) imgInput.value = "";
+      if(priceInput) priceInput.value = "";
+      if(urlInput) urlInput.value = "";
+
       saveState();
-      showToast("已新增物品");
+      showToast("已新增商品");
       render();
     }
 
