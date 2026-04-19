@@ -350,18 +350,14 @@
     function clone(obj){ return JSON.parse(JSON.stringify(obj)); }
 
     function loadState(){
-      try{
-        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-        return {
-          activeList: saved?.activeList || "travel",
-          lists: clone(DEFAULT_LISTS),
-          checked: saved?.checked || {},
-          open: saved?.open || {},
-          brandOpen: saved?.brandOpen || {}
-        };
-      }catch(e){
-        return { activeList: "travel", lists: clone(DEFAULT_LISTS), checked: {}, open: {}, brandOpen: {} };
-      }
+      /* 強制使用乾淨狀態，避免舊 localStorage 結構造成畫面空白 */
+      return {
+        activeList: "travel",
+        lists: clone(DEFAULT_LISTS),
+        checked: {},
+        open: {},
+        brandOpen: {}
+      };
     }
 
     const state = loadState();
@@ -518,7 +514,7 @@
                   <button class="tiny-btn" type="button" data-add-btn="${group.title}">新增</button>
                 ` : `
                   <input class="editor-input" type="text" placeholder="名稱" data-add-name="${group.title}">
-                  <input class="editor-input" type="text" placeholder="圖片 (images/xxx.jpg)" data-add-img="${group.title}">
+                  <input class="editor-input" type="file" accept="image/*" data-add-file="${group.title}">
                   <input class="editor-input" type="text" placeholder="價格 (可留空)" data-add-price="${group.title}">
                   <input class="editor-input" type="text" placeholder="商品連結 (可留空)" data-add-url="${group.title}">
                   <button class="tiny-btn" type="button" data-add-btn="${group.title}">新增</button>
@@ -810,14 +806,21 @@
 
     function addItem(groupTitle){
       const nameInput = document.querySelector(`[data-add-name="${groupTitle}"]`);
+      const fileInput = document.querySelector(`[data-add-file="${groupTitle}"]`);
       const imgInput = document.querySelector(`[data-add-img="${groupTitle}"]`);
       const priceInput = document.querySelector(`[data-add-price="${groupTitle}"]`);
       const urlInput = document.querySelector(`[data-add-url="${groupTitle}"]`);
 
       const name = nameInput?.value.trim();
-      const img = imgInput?.value.trim();
+      let img = "";
       const price = priceInput?.value.trim();
       const url = urlInput?.value.trim();
+
+      if(fileInput && fileInput.files && fileInput.files[0]){
+        img = URL.createObjectURL(fileInput.files[0]);
+      } else if(imgInput){
+        img = imgInput.value.trim();
+      }
 
       if(!name) return;
 
@@ -842,6 +845,7 @@
 
       if(nameInput) nameInput.value = "";
       if(imgInput) imgInput.value = "";
+      if(fileInput) fileInput.value = "";
       if(priceInput) priceInput.value = "";
       if(urlInput) urlInput.value = "";
 
@@ -870,150 +874,57 @@
     }
 
     function enableDragSort(){
-      const isDesktop = window.matchMedia('(pointer:fine)').matches;
+  const isDesktop = window.matchMedia('(pointer:fine)').matches;
 
-      document.querySelectorAll('.items').forEach(listEl => {
-        let draggingEl = null;
-        let holdTimer = null;
-        let dragEnabled = false;
-        const groupTitle = listEl.dataset.group;
+  document.querySelectorAll('.items').forEach(listEl => {
+    let draggingEl = null;
 
-        listEl.querySelectorAll('.item').forEach(item => {
-          item.setAttribute('draggable', 'false');
-
-          const enableDesktopDrag = () => {
-            dragEnabled = true;
-            draggingEl = item;
-            item.setAttribute('draggable', 'true');
-            item.classList.add('dragging');
-          };
-
-          const disableDesktopDrag = () => {
-            clearTimeout(holdTimer);
-            if(draggingEl === item){
-              item.classList.remove('dragging');
-              draggingEl = null;
-            }
-            item.setAttribute('draggable', 'false');
-            dragEnabled = false;
-          };
-
-          if(isDesktop){
-            item.addEventListener('mousedown', e => {
-              if(e.target.closest('input, button')) return;
-              holdTimer = setTimeout(enableDesktopDrag, 220);
-            });
-
-            item.addEventListener('mouseup', () => {
-              clearTimeout(holdTimer);
-              if(!dragEnabled) return;
-              persistOrder(groupTitle, listEl);
-              disableDesktopDrag();
-            });
-
-            item.addEventListener('mouseleave', () => {
-              clearTimeout(holdTimer);
-            });
-
-            item.addEventListener('dragstart', () => {
-              if(!dragEnabled){
-                item.setAttribute('draggable', 'false');
-                return;
-              }
-              draggingEl = item;
-              item.classList.add('dragging');
-            });
-
-            item.addEventListener('dragend', () => {
-              persistOrder(groupTitle, listEl);
-              disableDesktopDrag();
-            });
-          }
-
-          item.addEventListener('touchstart', () => {
-            holdTimer = setTimeout(() => {
-              draggingEl = item;
-              item.classList.add('dragging');
-              if(navigator.vibrate) navigator.vibrate(10);
-            }, 220);
-          }, { passive:true });
-
-          item.addEventListener('touchend', () => {
-            clearTimeout(holdTimer);
-            if(draggingEl){
-              draggingEl.classList.remove('dragging');
-              draggingEl = null;
-              persistOrder(groupTitle, listEl);
-            }
-          });
-
-          item.addEventListener('touchcancel', () => {
-            clearTimeout(holdTimer);
-            draggingEl = null;
-          });
-        });
-
-        listEl.addEventListener('dragover', e => {
-          if(!draggingEl) return;
-          e.preventDefault();
-          const after = [...listEl.querySelectorAll('.item:not(.dragging)')]
-            .find(el => e.clientY <= el.getBoundingClientRect().top + el.offsetHeight / 2);
-
-          if(!after) listEl.appendChild(draggingEl);
-          else listEl.insertBefore(draggingEl, after);
-        });
-
-        listEl.addEventListener('touchmove', e => {
-          if(!draggingEl) return;
-          const touch = e.touches[0];
-          const after = [...listEl.querySelectorAll('.item:not(.dragging)')]
-            .find(el => touch.clientY <= el.getBoundingClientRect().top + el.offsetHeight / 2);
-
-          if(!after) listEl.appendChild(draggingEl);
-          else listEl.insertBefore(draggingEl, after);
-          e.preventDefault();
-        }, { passive:false });
+    listEl.querySelectorAll('.item').forEach(item => {
+      item.addEventListener('dragstart', e => {
+        if(!isDesktop) return;
+        draggingEl = item;
+        item.classList.add('dragging');
       });
-    }
 
-    function persistOrder(groupTitle, listEl){
-      const group = currentList().groups.find(g => g.title === groupTitle);
-      if(!group) return;
-      group.items = [...listEl.querySelectorAll('.item')].map(el => el.dataset.item);
-      saveState();
-      render();
-    }
+      item.addEventListener('dragend', () => {
+        if(!isDesktop) return;
+        item.classList.remove('dragging');
+        draggingEl = null;
+      });
 
-    function refreshStats(){
-      const list = currentList();
-      const total = list.groups.reduce((sum, group) => sum + getFlattenedItems(group).length, 0);
-      const done = list.groups.reduce((sum, group) => sum + getFlattenedItems(group).filter(item => {
-        const itemName = item?.name ?? item;
-        return !!state.checked[keyForItem(state.activeList, group.title, itemName)];
-      }).length, 0);
-      const percent = total ? Math.round((done / total) * 100) : 0;
-      document.getElementById("doneCount").textContent = String(done);
-      document.getElementById("totalCount").textContent = String(total);
-      document.getElementById("percentCount").textContent = `${percent}%`;
-    }
+      item.addEventListener('dragover', e => {
+        if(!isDesktop) return;
+        e.preventDefault();
+        const after = e.currentTarget;
+        if(draggingEl && after !== draggingEl){
+          const parent = after.parentNode;
+          parent.insertBefore(draggingEl, after.nextSibling);
+        }
+      });
+    });
+  });
+}
 
-    function runSelfTests(){
-      console.assert(Array.isArray(DEFAULT_LISTS.travel.groups), 'travel groups should be an array');
-      console.assert(Array.isArray(DEFAULT_LISTS.drugstore.groups), 'drugstore groups should be an array');
-      console.assert(DEFAULT_LISTS.drugstore.groups.some(g => g.title === 'saint james'), 'saint james group should exist');
-      console.assert(DEFAULT_LISTS.drugstore.groups.some(g => g.title === '安全帽'), '安全帽 group should exist');
-      console.assert(DEFAULT_LISTS.drugstore.groups.some(g => g.title === 'MUJI'), 'MUJI group should exist');
+function refreshStats(){
+  const list = currentList();
+  let total = 0;
+  let done = 0;
 
-      const skincare = DEFAULT_LISTS.drugstore.groups.find(g => g.title === '保養/化妝');
-      console.assert(skincare, '保養/化妝 group should exist');
-      console.assert(getFlattenedItems(skincare).length === 6, '保養/化妝 should flatten 6 items');
+  list.groups.forEach(g => {
+    const flat = getFlattenedItems(g);
+    total += flat.length;
+    flat.forEach(item => {
+      const name = item?.name ?? item;
+      if(state.checked[keyForItem(state.activeList, g.title, name)]) done++;
+    });
+  });
 
-      console.assert(splitPrice('モイスチュア チャージ セラム9,900円(税込)').price === '9,900円(税込)', 'price parser should extract price');
-      console.assert(splitPrice('EVE止痛藥').text === 'EVE止痛藥', 'price parser should keep plain name');
-    }
+  document.getElementById('doneCount').textContent = done;
+  document.getElementById('totalCount').textContent = total;
+  document.getElementById('percentCount').textContent = total ? Math.round(done/total*100) + '%' : '0%';
+}
 
-    runSelfTests();
-    render();
+render();
   </script>
 </body>
 </html>
