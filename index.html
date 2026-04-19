@@ -511,7 +511,7 @@
 
             ${itemsHtml}
 
-            ${state.activeList !== "drugstore" || group.title === "藥妝" ? `
+            ${state.activeList !== "drugstore" || ["藥妝","MUJI","UNIQLO","其他","便利商店","所有雜七雜八"].includes(group.title) ? `
               <div class="editor-row" style="flex-wrap:wrap;gap:6px">
                 <input class="editor-input" type="text" placeholder="名稱" data-add-name="${group.title}">
                 <input class="editor-input" type="text" placeholder="圖片 (images/xxx.jpg)" data-add-img="${group.title}">
